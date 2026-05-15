@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Marketing · DataHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;--bg2:#0d1119;--bg3:#131926;--bg4:#1a2333;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:rgba(255,255,255,0.92);--muted:rgba(255,255,255,0.38);--dim:rgba(255,255,255,0.13);
+  --accent:#3b82f6;--green:#22c55e;--gold:#eab308;--red:#ef4444;--purple:#a855f7;--teal:#2dd4bf;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-size:180px;opacity:0.45}
+
+/* ══ AUTH ══════════════════════════════════════════════════ */
+#auth{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg)}
+.auth-dots{position:absolute;inset:0;
+  background-image:radial-gradient(rgba(255,255,255,0.055) 1px,transparent 1px);
+  background-size:30px 30px;
+  mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,black 15%,transparent 100%)}
+.auth-glow{position:absolute;width:600px;height:400px;
+  background:radial-gradient(ellipse,rgba(59,130,246,0.09) 0%,transparent 65%);
+  top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;transition:background 0.5s}
+.auth-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:38px}
+.auth-eyebrow{font-size:11px;letter-spacing:5px;color:var(--muted);text-transform:uppercase;font-family:'DM Sans',sans-serif;text-align:center;margin-bottom:8px}
+.auth-wordmark{font-family:'Archivo Black',sans-serif;font-size:50px;letter-spacing:-2px;color:var(--text);line-height:1;text-align:center}
+.auth-wordmark em{color:var(--accent);font-style:normal}
+.auth-form{display:flex;flex-direction:column;gap:10px;width:272px}
+.auth-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:14px;
+  padding:16px 20px;color:var(--text);font-family:'DM Mono',monospace;font-size:18px;
+  letter-spacing:8px;text-align:center;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.auth-input::placeholder{letter-spacing:3px;color:var(--dim);font-size:13px}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.11)}
+.auth-btn{background:var(--accent);border:none;border-radius:14px;padding:16px;color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;
+  letter-spacing:0.5px;transition:opacity 0.2s,transform 0.1s}
+.auth-btn:hover{opacity:0.87}.auth-btn:active{transform:scale(0.98)}
+.auth-err{color:var(--red);font-size:12px;text-align:center;min-height:18px}
+.auth-foot{position:absolute;bottom:24px;font-size:11px;color:var(--dim);letter-spacing:2px}
+
+/* ══ SETTINGS ══════════════════════════════════════════════ */
+#sp-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);display:none}
+#sp-overlay.open{display:flex;align-items:flex-end;justify-content:flex-end}
+#sp-panel{background:var(--bg2);border-left:1px solid var(--border);border-top:1px solid var(--border);
+  width:340px;height:100vh;padding:28px 24px;display:flex;flex-direction:column;gap:18px;
+  overflow-y:auto;animation:slideIn 0.3s cubic-bezier(0.16,1,0.3,1)}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.sp-hdr{display:flex;align-items:center;justify-content:space-between}
+.sp-title{font-family:'Archivo Black',sans-serif;font-size:17px}
+.sp-x{background:transparent;border:1px solid var(--border);border-radius:8px;
+  width:32px;height:32px;color:var(--muted);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.sp-x:hover{border-color:var(--border2);color:var(--text)}
+.sp-sect{font-size:10px;text-transform:uppercase;letter-spacing:3px;color:var(--muted);
+  padding-bottom:10px;border-bottom:1px solid var(--border)}
+.sp-field{display:flex;flex-direction:column;gap:6px}
+.sp-lbl{font-size:12px;color:var(--muted)}
+.sp-inp{background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;
+  outline:none;transition:border-color 0.2s;width:100%}
+.sp-inp:focus{border-color:var(--accent)}
+.sp-save{background:var(--accent);border:none;border-radius:10px;padding:13px;color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;
+  width:100%;transition:opacity 0.2s}
+.sp-save:hover{opacity:0.88}.sp-save:disabled{opacity:0.38;cursor:not-allowed}
+.sp-msg{font-size:12px;text-align:center;min-height:16px}
+.ok-cl{color:var(--green)}.err-cl{color:var(--red)}
+.sp-hint{font-size:11px;color:var(--dim);line-height:1.65}
+
+/* ══ APP ════════════════════════════════════════════════════ */
+#app{display:none;position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:24px 20px 64px}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.tb-l{display:flex;flex-direction:column;gap:3px}
+.cname{font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:-0.5px}
+.cname em{color:var(--accent);font-style:normal}
+.csub{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.tb-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* MONTH NAV */
+.month-select-wrap{position:relative;display:flex;align-items:center}
+.month-select{appearance:none;background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:8px 36px 8px 14px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;outline:none;transition:border-color 0.2s;min-width:130px}
+.month-select:focus{border-color:var(--accent)}
+.month-select option{background:var(--bg3);color:var(--text)}
+.month-arrow{position:absolute;right:12px;pointer-events:none;color:var(--muted);font-size:11px}
+
+.upd-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;
+  padding:7px 14px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap}
+.icon-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--muted);font-size:16px;transition:all 0.2s;flex-shrink:0}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+.brand-tag{font-size:10px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;font-family:'Archivo Black',sans-serif}
+
+/* SECTION */
+.sec{display:flex;align-items:center;gap:14px;margin:32px 0 16px}
+.sec-line{flex:1;height:1px;background:var(--border)}
+.sec-tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sec-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--text)}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:960px){.g4{grid-template-columns:repeat(2,1fr)}.g6{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.g3,.g2{grid-template-columns:1fr 1fr}.g6{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.g4,.g3,.g2{grid-template-columns:1fr 1fr}}
+
+/* KPI */
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.22s}
+.kpi:hover{border-color:var(--border2)}
+.kbar{position:absolute;top:0;left:16px;right:16px;height:1px;background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:0.85}
+.klbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px}
+.kval{font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:-1px;line-height:1;color:var(--c,var(--accent))}
+.kval.sm{font-size:22px}.kval.xs{font-size:17px}
+.ksub{font-size:11px;margin-top:7px;min-height:16px}
+.up{color:var(--green)}.dn{color:var(--red)}.neu{color:var(--muted)}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px}
+.ct{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.mb{margin-bottom:14px}
+
+/* PLAN */
+.prow{margin-bottom:18px}.prow:last-child{margin-bottom:0}
+.ptop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plbl{font-size:13px;color:var(--text);font-weight:500}
+.ppct{font-family:'Archivo Black',sans-serif;font-size:22px}
+.pbg{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.pfill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(0.16,1,0.3,1)}
+.pnums{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* FUNNEL */
+.fnl{display:flex;flex-direction:column;gap:7px}
+.frow{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:10px;padding:11px 14px}
+.fn{font-size:10px;color:var(--dim);min-width:14px;font-family:'DM Mono',monospace}
+.fname{font-size:12px;color:var(--muted);flex:1}
+.fval{font-family:'Archivo Black',sans-serif;font-size:20px;color:var(--text);min-width:52px;text-align:right}
+.fconv{font-size:11px;min-width:48px;text-align:right;font-family:'DM Mono',monospace;color:var(--gold)}
+
+/* CONV */
+.cvgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cvrow{background:var(--bg3);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:5px}
+.cvlbl{font-size:11px;color:var(--muted)}
+.cvval{font-family:'Archivo Black',sans-serif;font-size:22px;color:var(--green)}
+
+/* ANOMALY */
+.alist{display:flex;flex-direction:column;gap:7px}
+.arow{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:10px;padding:10px 14px}
+.adate{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;min-width:38px}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:0.5px;white-space:nowrap}
+.br{background:rgba(239,68,68,0.12);color:var(--red)}
+.bg{background:rgba(34,197,94,0.12);color:var(--green)}
+.by{background:rgba(234,179,8,0.12);color:var(--gold)}
+.amsg{font-size:12px;color:var(--text)}
+
+/* CHART */
+.ch{position:relative;height:180px}.ch.tall{height:230px}
+
+/* LOADING */
+.ldg{display:flex;align-items:center;justify-content:center;height:320px;
+  flex-direction:column;gap:14px;color:var(--muted);font-size:12px;letter-spacing:2px}
+.ldg-dots{display:flex;gap:7px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:bnc 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bnc{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-9px)}}
+
+/* ANIM */
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.a0{animation:fu .45s cubic-bezier(0.16,1,0.3,1) both}
+.a1{animation:fu .45s .06s cubic-bezier(0.16,1,0.3,1) both}
+.a2{animation:fu .45s .12s cubic-bezier(0.16,1,0.3,1) both}
+.a3{animation:fu .45s .18s cubic-bezier(0.16,1,0.3,1) both}
+.a4{animation:fu .45s .24s cubic-bezier(0.16,1,0.3,1) both}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:4px}
+
+/* LIVE BLOCK */
+.live-block{background:var(--bg2);border:1px solid rgba(34,197,94,0.25);border-radius:16px;
+  padding:20px;margin-bottom:14px;
+  box-shadow:0 0 24px rgba(34,197,94,0.06);
+  position:relative;overflow:hidden}
+.live-block::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent)}
+.live-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.live-label{display:flex;align-items:center;gap:8px;font-size:10px;text-transform:uppercase;
+  letter-spacing:3px;color:var(--green)}
+.live-dot-anim{width:7px;height:7px;border-radius:50%;background:var(--green);
+  animation:bnc 1.4s ease infinite;display:inline-block}
+.live-timer{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 10px}
+.live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:960px){.live-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.live-grid{grid-template-columns:1fr 1fr}}
+.yest-label{font-size:10px;text-transform:uppercase;letter-spacing:3px;color:var(--muted);
+  margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- SETTINGS -->
+<div id="sp-overlay" onclick="spClickOut(event)">
+  <div id="sp-panel">
+    <div class="sp-hdr">
+      <div class="sp-title">⚙️ Настройки плана</div>
+      <button class="sp-x" onclick="closeSP()">✕</button>
+    </div>
+    <div class="sp-hint">Изменения сохраняются в Google Sheets и сразу пересчитывают % выполнения.</div>
+    <div class="sp-sect">Маркетинг</div>
+    <div class="sp-field"><label class="sp-lbl">План лидов</label><input class="sp-inp" id="sp-ml" type="number"></div>
+    <div class="sp-field"><label class="sp-lbl">План квал лидов</label><input class="sp-inp" id="sp-mq" type="number"></div>
+    <div class="sp-field"><label class="sp-lbl">План расходов (₸)</label><input class="sp-inp" id="sp-ms" type="number"></div>
+    <div class="sp-sect" id="sp-ssect" style="display:none">Продажи</div>
+    <div id="sp-sfields" style="display:none">
+      <div class="sp-field" style="margin-bottom:10px"><label class="sp-lbl">План продаж (кол-во)</label><input class="sp-inp" id="sp-ss" type="number"></div>
+      <div class="sp-field"><label class="sp-lbl">План выручки (₸)</label><input class="sp-inp" id="sp-sr" type="number"></div>
+    </div>
+    <button class="sp-save" id="sp-btn" onclick="savePlans()">Сохранить</button>
+    <div class="sp-msg" id="sp-msg"></div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-dots"></div>
+  <div class="auth-glow" id="auth-glow"></div>
+  <div class="auth-inner">
+    <div>
+      <div class="auth-eyebrow">Smart Marketing</div>
+      <div class="auth-wordmark">Data<em>Hub</em></div>
+    </div>
+    <div class="auth-form">
+      <input class="auth-input" type="password" id="pwd" placeholder="· · · · · ·" maxlength="24"
+        onkeydown="if(event.key==='Enter')login()">
+      <button class="auth-btn" onclick="login()">Войти</button>
+      <div class="auth-err" id="aerr"></div>
+    </div>
+  </div>
+  <div class="auth-foot">© Smart Marketing · Конфиденциально</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar a0">
+    <div class="tb-l">
+      <div class="cname" id="cname">—</div>
+      <div class="csub" id="csub">—</div>
+    </div>
+    <div class="tb-r">
+      <!-- Выпадающий список месяцев -->
+      <div class="month-select-wrap">
+        <select class="month-select" id="month-select" onchange="switchMonth(this.value)">
+          <option value="">Загрузка...</option>
+        </select>
+        <span class="month-arrow">▾</span>
+      </div>
+      <div class="upd-pill" id="upd">—</div>
+      <div class="upd-pill" id="live-pill" style="display:flex;align-items:center;gap:7px;color:var(--green);border-color:rgba(34,197,94,0.25);background:rgba(34,197,94,0.06)">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:bnc 1.4s ease infinite;display:inline-block;flex-shrink:0"></span>
+        LIVE · <span id="cdown">15:00</span>
+      </div>
+      <div class="icon-btn" onclick="loadData()" title="Обновить">↻</div>
+      <div class="icon-btn" onclick="openSP()" title="Настройки плана">⚙</div>
+      <div class="brand-tag">Smart</div>
+    </div>
+  </div>
+  <div id="dash"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONFIG — только это редактировать при добавлении клиента
+// ══════════════════════════════════════════════════════════════
+const API_URL = "https://script.google.com/macros/s/AKfycbwS6JpGZTLBX0gIlBW-JNGSL_pfCMpmk2raYaxzMH_HdG-J52RkekyWKYGSznlJ6Y3e_A/exec";
+
+// Клиенты: пароль → отображение в UI
+// Остальные данные (месяцы, тип) тянутся из API (?meta=1)
+const CLIENTS = {
+  "ncf2026"    : { name:"NCF",    hl:"EDUKZ",  sub:"Маркетинг + Продажи", accent:"#3b82f6" },
+  "tetris2026"  : { name:"TETRIS",  hl:"",  sub:"Реклама · 2026",      accent:"#f97316" },
+  "alsapa2026"  : { name:"ALSAPA",  hl:"",  sub:"Газоблоки · 2026",    accent:"#10b981" },
+  "kepler2026"  : { name:"KEPLER",  hl:"",  sub:"Скрытые двери · 2026",accent:"#8b5cf6" },
+  // "новый2026": { name:"КЛИЕНТ", hl:"", sub:"Ниша · 2026", accent:"#цвет" },
+};
+
+// Русские названия для ключей месяцев
+const MONTH_LABELS = {
+  jan:"Январь", feb:"Февраль", mar:"Март",     apr:"Апрель",
+  may:"Май",    jun:"Июнь",    jul:"Июль",     aug:"Август",
+  sep:"Сентябрь",oct:"Октябрь",nov:"Ноябрь",  dec:"Декабрь",
+};
+
+// ══════════════════════════════════════════════════════════════
+//  СОСТОЯНИЕ
+// ══════════════════════════════════════════════════════════════
+let G = {
+  pwd:      "",
+  meta:     null,   // {months, curMonth, type, salesPerson}
+  curMonth: "",
+  data:     null,
+};
+
+// ══════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════
+function login() {
+  const pwd = document.getElementById("pwd").value.trim();
+  const cfg = CLIENTS[pwd];
+  if (!cfg) {
+    document.getElementById("aerr").textContent = "Неверный пароль";
+    document.getElementById("pwd").value = "";
+    return;
+  }
+  G.pwd = pwd;
+  document.documentElement.style.setProperty("--accent", cfg.accent);
+  document.getElementById("auth-glow").style.background =
+    `radial-gradient(ellipse,${cfg.accent}14 0%,transparent 65%)`;
+  document.getElementById("auth").style.display = "none";
+  document.getElementById("app").style.display  = "block";
+  document.getElementById("cname").innerHTML =
+    cfg.name + (cfg.hl ? ` <em>${cfg.hl}</em>` : "");
+  document.getElementById("csub").textContent = cfg.sub;
+
+  initClient();
+  startAutoRefresh();
+}
+document.getElementById("pwd").addEventListener("input", () =>
+  document.getElementById("aerr").textContent = "");
+
+// ══════════════════════════════════════════════════════════════
+//  АВТОРЕФРЕШ КАЖДЫЕ 15 МИНУТ
+// ══════════════════════════════════════════════════════════════
+const REFRESH_SEC = 15 * 60;
+let _countdown = REFRESH_SEC;
+let _timer = null;
+
+function startAutoRefresh() {
+  if (_timer) clearInterval(_timer);
+  _countdown = REFRESH_SEC;
+  _timer = setInterval(() => {
+    _countdown--;
+    if (_countdown <= 0) {
+      _countdown = REFRESH_SEC;
+      loadData();
+    }
+    const m = String(Math.floor(_countdown/60)).padStart(2,"0");
+    const s = String(_countdown%60).padStart(2,"0");
+    const t = m+":"+s;
+    const el1 = document.getElementById("cdown");
+    const el2 = document.getElementById("live-cdown");
+    if (el1) el1.textContent = t;
+    if (el2) el2.textContent = t;
+  }, 1000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT — загружаем метаданные (список месяцев)
+// ══════════════════════════════════════════════════════════════
+async function initClient() {
+  try {
+    const res  = await fetch(`${API_URL}?pwd=${G.pwd}&meta=1`);
+    const meta = await res.json();
+    if (meta.error) throw new Error(meta.error);
+    G.meta = meta;
+    G.curMonth = meta.curMonth || Object.keys(meta.months)[0];
+
+    // Настройки: показать поля продаж если нужно
+    if (meta.type === "marketing_sales") {
+      document.getElementById("sp-ssect").style.display = "";
+      document.getElementById("sp-sfields").style.display = "";
+    }
+    buildMonthNav(meta.months);
+    loadData();
+  } catch(e) {
+    // Если API ещё не задеплоен — грузим с текущим месяцем
+    G.meta = { months:{ apr:"Апрель", may:"Май" }, curMonth:"may", type:"marketing_sales" };
+    G.curMonth = "may";
+    buildMonthNav(G.meta.months);
+    loadData();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  НАВИГАЦИЯ ПО МЕСЯЦАМ
+// ══════════════════════════════════════════════════════════════
+function buildMonthNav(months) {
+  const sel = document.getElementById("month-select");
+  sel.innerHTML = Object.entries(months).map(([key, sheet]) => {
+    const lbl = MONTH_LABELS[key] || sheet;
+    return `<option value="${key}" ${key===G.curMonth?'selected':''}>${lbl}</option>`;
+  }).join("");
+}
+
+function switchMonth(key) {
+  if (!key || key === G.curMonth) return;
+  G.curMonth = key;
+  loadData();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ЗАГРУЗКА ДАННЫХ
+// ══════════════════════════════════════════════════════════════
+async function loadData() {
+  document.getElementById("dash").innerHTML = `
+    <div class="ldg">
+      <div class="ldg-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <span>Загрузка данных...</span>
+    </div>`;
+  try {
+    const url  = `${API_URL}?pwd=${encodeURIComponent(G.pwd)}&month=${G.curMonth}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    G.data = data;
+    fillSP(data);
+    render(data);
+  } catch(e) {
+    document.getElementById("dash").innerHTML =
+      `<div class="ldg" style="color:var(--red)">Ошибка: ${e.message}<br>
+      <small style="color:var(--muted);margin-top:8px;display:block">
+        Задеплой Web App или проверь URL</small></div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════════════
+function fillSP(d) {
+  document.getElementById("sp-ml").value = d.planMLeads   || "";
+  document.getElementById("sp-mq").value = d.planMQual    || "";
+  document.getElementById("sp-ms").value = d.planMSpend   || "";
+  document.getElementById("sp-ss").value = d.planSSales   || "";
+  document.getElementById("sp-sr").value = d.planSRevenue || "";
+}
+function openSP()  { document.getElementById("sp-overlay").classList.add("open"); }
+function closeSP() { document.getElementById("sp-overlay").classList.remove("open"); }
+function spClickOut(e) { if(e.target===document.getElementById("sp-overlay")) closeSP(); }
+
+async function savePlans() {
+  const btn = document.getElementById("sp-btn");
+  const msg = document.getElementById("sp-msg");
+  btn.disabled = true; btn.textContent = "Сохранение..."; msg.textContent = "";
+  try {
+    const res  = await fetch(API_URL, {
+      method  : "POST",
+      headers : { "Content-Type":"application/json" },
+      body    : JSON.stringify({
+        pwd:G.pwd, month:G.curMonth,
+        planMLeads  : +document.getElementById("sp-ml").value||0,
+        planMQual   : +document.getElementById("sp-mq").value||0,
+        planMSpend  : +document.getElementById("sp-ms").value||0,
+        planSSales  : +document.getElementById("sp-ss").value||0,
+        planSRevenue: +document.getElementById("sp-sr").value||0,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    msg.innerHTML = '<span class="ok-cl">✓ Сохранено!</span>';
+    setTimeout(() => { closeSP(); loadData(); }, 700);
+  } catch(e) {
+    msg.innerHTML = `<span class="err-cl">Ошибка: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "Сохранить";
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+function render(d) {
+  document.getElementById("upd").textContent = "↻ " + d.updated;
+  const ac = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  if (d.type === "marketing_sales") renderMS(d, ac);
+  else                               renderBasic(d, ac);
+}
+
+// ── marketing_sales ─────────────────────────────────────────
+function renderMS(d, ac) {
+  const f   = n => (n||0).toLocaleString("ru-RU");
+  const ft  = n => f(Math.round(n||0))+" ₸";
+  const sp  = d.salesPerson || G.meta?.salesPerson || "Продажи";
+  const cQL = d.totalMLeads>0 ? (d.totalMQual/d.totalMLeads*100).toFixed(1) : 0;
+  const sQP = d.totalSLeads>0 ? (d.totalSQual/d.totalSLeads*100).toFixed(1) : 0;
+  const mP  = d.totalSMeetSet>0 ? (d.totalSMeetDone/d.totalSMeetSet*100).toFixed(0) : 0;
+  const cac = d.totalSSales>0 ? Math.round(d.totalMSpend/d.totalSSales) : 0;
+  const avg = d.totalSSales>0 ? Math.round(d.totalSRevenue/d.totalSSales) : 0;
+
+  document.getElementById("dash").innerHTML = `
+
+    <div class="live-block a0">
+      <div class="live-header">
+        <div class="live-label">
+          <span class="live-dot-anim"></span>
+          Сегодня — реальное время
+        </div>
+        <div class="live-timer">обновление: <span id="live-cdown">15:00</span></div>
+      </div>
+      <div class="live-grid">
+        ${K("Лиды сегодня",   f(d.todayMLeads),  dlt(d.todayMLeads,d.yestMLeads,"hi"),  ac)}
+        ${K("CPL сегодня",    ft(d.todayMCPL),   dlt(d.todayMCPL, d.yestMCPL, "lo"),   "#eab308")}
+        ${K("Расход сегодня", ft(d.todayMSpend), dlt(d.todayMSpend,d.yestMSpend,"hi"),  "#a855f7")}
+        ${K("Прогноз/месяц",  f(d.forecast),
+          `<span class="${d.forecast>=(d.planMLeads||1)?'up':'dn'}">`+
+          `${d.forecast>=(d.planMLeads||1)?'▲':' '}${Math.abs(d.forecast-(d.planMLeads||0)).toLocaleString("ru-RU")} к плану</span>`,
+          "#22c55e")}
+      </div>
+    </div>
+
+    ${S("Маркетинг","Дархан")}
+    <div class="yest-label">Вчера</div>
+    <div class="g4 a1">
+      ${K("Лиды вчера",   f(d.yestMLeads),  "", ac)}
+      ${K("CPL вчера",    ft(d.yestMCPL),   "", "#eab308")}
+      ${K("Расход вчера", ft(d.yestMSpend), "", "#a855f7")}
+      ${K("Лиды всего",   f(d.totalMLeads),
+        `<span class="${d.totalMLeads>=(d.planMLeads||1)*0.7?'up':'dn'}">${d.planMLeads?Math.round(d.totalMLeads/d.planMLeads*100):0}% от плана</span>`,ac)}
+    </div>
+    <div class="g3 a2">
+      ${K("Лиды всего", f(d.totalMLeads),
+        `<span class="${d.totalMLeads>=(d.planMLeads||1)*0.7?'up':'dn'}">${d.planMLeads?Math.round(d.totalMLeads/d.planMLeads*100):0}% от плана</span>`,ac)}
+      ${K("Квал лиды",  f(d.totalMQual),
+        `<span class="neu">Конверсия ${cQL}%</span>`,"#2dd4bf")}
+      ${K("Расход",     ft(d.totalMSpend),
+        `<span class="neu">Ср. CPL ${ft(d.avgCPL)}</span>`,"#a855f7")}
+    </div>
+    <div class="g2 a3">
+      <div class="card">
+        <div class="ct">Выполнение плана &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
+        ${P("Лиды",     d.totalMLeads, d.planMLeads,  ac)}
+        ${P("Квал лиды",d.totalMQual,  d.planMQual,  "#2dd4bf")}
+        ${P("Расходы",  d.totalMSpend, d.planMSpend, "#a855f7")}
+        ${P("Темп/день",d.pace, Math.round((d.planMLeads||30)/30),"#22c55e")}
+      </div>
+      <div class="card"><div class="ct">CPL по неделям</div><div class="ch tall"><canvas id="cplC"></canvas></div></div>
+    </div>
+    <div class="card mb a3"><div class="ct">Лиды по дням</div><div class="ch tall"><canvas id="lC"></canvas></div></div>
+    <div class="card mb a4"><div class="ct">Расходы по дням (₸)</div><div class="ch"><canvas id="sC"></canvas></div></div>
+    <div class="card mb a4"><div class="ct">Аномалии</div><div class="alist" id="al"></div></div>
+
+    ${S("Отдел продаж", sp)}
+    <div class="g6 a1">
+      ${K("Лиды",        f(d.totalSLeads),   "", ac,"sm")}
+      ${K("Квал лиды",   f(d.totalSQual),    `<span class="neu">${sQP}% квалиф.</span>`,"#2dd4bf","sm")}
+      ${K("Встречи назн",f(d.totalSMeetSet), `<span class="neu">${d.convQualMeet}% с квал</span>`,"#eab308","sm")}
+      ${K("Встречи пров",f(d.totalSMeetDone),`<span class="neu">${mP}% прошло</span>`,"#eab308","sm")}
+      ${K("Продаж",      f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
+      ${K("Оплаты",      ft(d.totalSRevenue),"","#22c55e","xs")}
+    </div>
+    <div class="g2 a2">
+      <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
+        ${F(1,"Лиды",           d.totalSLeads,   null)}
+        ${F(2,"Квал лиды",      d.totalSQual,    sQP+"%")}
+        ${F(3,"Назнач. встречи",d.totalSMeetSet, d.convQualMeet+"%")}
+        ${F(4,"Прошли встречи", d.totalSMeetDone,mP+"%")}
+        ${F(5,"Продаж закрыто", d.totalSSales,   d.convQualSale+"%")}
+      </div></div>
+      <div class="card"><div class="ct">Конверсии</div><div class="cvgrid">
+        ${CV("Лид → Квал",     sQP+"%")}
+        ${CV("Квал → Встреча", d.convQualMeet+"%")}
+        ${CV("Квал → Продажа", d.convQualSale+"%")}
+        ${CV("Лид → Продажа",  d.convLeadSale+"%")}
+      </div></div>
+    </div>
+    <div class="g2 a3">
+      <div class="card">
+        <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
+        ${P("Продажи",d.totalSSales,   d.planSSales,   "#22c55e")}
+        ${P("Выручка",d.totalSRevenue, d.planSRevenue, "#22c55e")}
+      </div>
+      <div class="g3" style="margin:0;align-content:start">
+        ${K("ROMI",(d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
+        ${K("CAC",ft(cac),'<span class="neu">Расход / клиент</span>',ac)}
+        ${K("Ср. чек",ft(avg),'<span class="neu">₸ за продажу</span>',"#eab308")}
+      </div>
+    </div>
+  `;
+
+  // Аномалии
+  const am = {ДОРОГО:"br",МАЛО:"by",ОТЛИЧНО:"bg"};
+  const al = document.getElementById("al");
+  al.innerHTML = d.anomalies?.length
+    ? d.anomalies.map(a=>`<div class="arow"><span class="adate">${a.date}</span><span class="badge ${am[a.type]||'by'}">${a.type}</span><span class="amsg">${a.msg}</span></div>`).join("")
+    : '<span style="color:var(--dim);font-size:12px">Аномалий не обнаружено</span>';
+
+  drawCharts(d, ac);
+}
+
+// ── marketing_only ─────────────────────────────────────────
+function renderBasic(d, ac) {
+  const f  = n => (n||0).toLocaleString("ru-RU");
+  const ft = n => f(Math.round(n||0))+" ₸";
+  document.getElementById("dash").innerHTML = `
+    ${S("Маркетинг","")}
+    <div class="g4 a1">
+      ${K("Лиды сегодня",   f(d.todayMLeads),  dlt(d.todayMLeads,d.yestMLeads,"hi"),  ac)}
+      ${K("CPL сегодня",    ft(d.todayMCPL),   dlt(d.todayMCPL,d.yestMCPL,"lo"),      "#eab308")}
+      ${K("Расход сегодня", ft(d.todayMSpend), dlt(d.todayMSpend,d.yestMSpend,"hi"),  "#a855f7")}
+      ${K("Прогноз/месяц",  f(d.forecast),     "","#22c55e")}
+    </div>
+    <div class="g2 a2">
+      <div class="card">
+        <div class="ct">Выполнение плана &nbsp;<span style="color:var(--accent);cursor:pointer" onclick="openSP()">⚙</span></div>
+        ${P("Лиды",    d.totalMLeads, d.planMLeads,  ac)}
+        ${P("Расходы", d.totalMSpend, d.planMSpend, "#a855f7")}
+        ${P("Темп/день",d.pace,Math.round((d.planMLeads||30)/30),"#22c55e")}
+      </div>
+      <div class="card"><div class="ct">CPL по неделям</div><div class="ch tall"><canvas id="cplC"></canvas></div></div>
+    </div>
+    <div class="card mb a3"><div class="ct">Лиды по дням</div><div class="ch tall"><canvas id="lC"></canvas></div></div>
+    <div class="card mb a3"><div class="ct">Расходы по дням (₸)</div><div class="ch"><canvas id="sC"></canvas></div></div>
+  `;
+  drawCharts(d, ac);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════════════════════
+function drawCharts(d, ac) {
+  const tc = "rgba(255,255,255,0.22)";
+  const gc = "rgba(255,255,255,0.04)";
+  const op = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  const xA = {ticks:{color:tc,font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14},grid:{color:gc}};
+  const yA = {ticks:{color:tc,font:{size:10}},grid:{color:gc},beginAtZero:true};
+
+  const lEl = document.getElementById("lC");
+  if (lEl) new Chart(lEl, {
+    type:"line",
+    data:{labels:d.dates,datasets:[{data:d.mLeads,borderColor:ac,backgroundColor:ac+"18",pointRadius:3,borderWidth:2,tension:0.3,fill:true}]},
+    options:{...op,scales:{x:xA,y:yA}}
+  });
+  const sEl = document.getElementById("sC");
+  if (sEl) new Chart(sEl, {
+    type:"bar",
+    data:{labels:d.dates,datasets:[{data:d.mSpend,backgroundColor:"#a855f760",borderRadius:4}]},
+    options:{...op,scales:{x:xA,y:{...yA,ticks:{color:tc,font:{size:10},callback:v=>(v/1000).toFixed(0)+"к"}}}}
+  });
+  const cEl = document.getElementById("cplC");
+  if (cEl) {
+    const wk=[0,1,2,3].map(w=>{const s=(d.cpl||[]).slice(w*7,w*7+7).filter(v=>v>0);return s.length?Math.round(s.reduce((a,b)=>a+b,0)/s.length):0});
+    new Chart(cEl, {
+      type:"line",
+      data:{labels:["Нед 1","Нед 2","Нед 3","Нед 4"],datasets:[{data:wk,borderColor:"#eab308",backgroundColor:"rgba(234,179,8,0.07)",pointRadius:7,pointBackgroundColor:"#eab308",borderWidth:2,tension:0.2,fill:true}]},
+      options:{...op,scales:{x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:10},callback:v=>v.toLocaleString("ru-RU")+"₸"},grid:{color:gc}}}}
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════
+function dlt(cur,prev,dir){
+  if(!prev||!cur)return"";
+  const p=Math.round(Math.abs(cur-prev)/prev*100);
+  const ok=dir==="hi"?cur>=prev:cur<=prev;
+  return`<span class="${ok?'up':'dn'}">${cur>prev?'▲':'▼'} ${p}% vs вчера</span>`;
+}
+function S(tag,pill){return`<div class="sec"><div class="sec-line"></div><div class="sec-tag">${tag}</div>${pill?`<div class="sec-pill">${pill}</div>`:""}<div class="sec-line"></div></div>`}
+function K(l,v,s,c,sz){return`<div class="kpi"><div class="kbar" style="--c:${c}"></div><div class="klbl">${l}</div><div class="kval ${sz||""}" style="--c:${c}">${v}</div><div class="ksub">${s||""}</div></div>`}
+function P(l,f,p,c){const pct=p>0?Math.round(f/p*100):0;const cl=pct>=100?"#22c55e":pct>=70?"#eab308":"#ef4444";return`<div class="prow"><div class="ptop"><span class="plbl">${l}</span><span class="ppct" style="color:${cl}">${pct}%</span></div><div class="pbg"><div class="pfill" style="width:${Math.min(pct,100)}%;background:${c}"></div></div><div class="pnums"><span>${(f||0).toLocaleString("ru-RU")}</span><span>план ${(p||0).toLocaleString("ru-RU")}</span></div></div>`}
+function F(n,name,val,conv){return`<div class="frow"><span class="fn">${n}</span><span class="fname">${name}</span><span class="fval">${(val||0).toLocaleString("ru-RU")}</span><span class="fconv">${conv||""}</span></div>`}
+function CV(l,v){return`<div class="cvrow"><span class="cvlbl">${l}</span><span class="cvval">${v}</span></div>`}
+</script>
+</body>
+</html>

@@ -499,7 +499,7 @@ function renderMS(d, ac) {
   const avg = d.totalSSales>0 ? Math.round(d.totalSRevenue/d.totalSSales) : 0;
 
   // Определяем тип воронки: с кубами (ALSAPA) или стандартная (со встречами)
-  const isCubes = (d.totalSCubes || 0) > 0 || (d.sCubesRow || 0) > 0;
+  const isCubes = d.totalSMeetSet === 0 && d.totalSMeetDone === 0;
 
   // Блок продаж — адаптивный
   const salesKPIs = isCubes ? `

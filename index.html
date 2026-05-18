@@ -498,6 +498,81 @@ function renderMS(d, ac) {
   const cac = d.totalSSales>0 ? Math.round(d.totalMSpend/d.totalSSales) : 0;
   const avg = d.totalSSales>0 ? Math.round(d.totalSRevenue/d.totalSSales) : 0;
 
+  // Определяем тип воронки: с кубами (ALSAPA) или стандартная (со встречами)
+  const isCubes = (d.totalSCubes || 0) > 0 || (d.sCubesRow || 0) > 0;
+
+  // Блок продаж — адаптивный
+  const salesKPIs = isCubes ? `
+    <div class="g4 a1">
+      ${K("Квал лиды",      f(d.totalSQual),    `<span class="neu">${sQP}% от лидов</span>`,"#2dd4bf","sm")}
+      ${K("Продаж",         f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
+      ${K("Кубов продано",  f(d.totalSCubes),   `<span class="neu">объём м³</span>`,"#eab308","sm")}
+      ${K("Сумма оплат",    ft(d.totalSRevenue),""                                 ,"#22c55e","xs")}
+    </div>` : `
+    <div class="g6 a1">
+      ${K("Лиды",        f(d.totalSLeads),   "", ac,"sm")}
+      ${K("Квал лиды",   f(d.totalSQual),    `<span class="neu">${sQP}% квалиф.</span>`,"#2dd4bf","sm")}
+      ${K("Встречи назн",f(d.totalSMeetSet), `<span class="neu">${d.convQualMeet}% с квал</span>`,"#eab308","sm")}
+      ${K("Встречи пров",f(d.totalSMeetDone),`<span class="neu">${mP}% прошло</span>`,"#eab308","sm")}
+      ${K("Продаж",      f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
+      ${K("Оплаты",      ft(d.totalSRevenue),"","#22c55e","xs")}
+    </div>`;
+
+  const salesFunnel = isCubes ? `
+    <div class="g2 a2">
+      <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
+        ${F(1,"Лиды",          d.totalSLeads, null)}
+        ${F(2,"Квал лиды",     d.totalSQual,  sQP+"%")}
+        ${F(3,"Продаж закрыто",d.totalSSales, d.convQualSale+"%")}
+        ${F(4,"Кубов продано", d.totalSCubes, null)}
+      </div></div>
+      <div class="card"><div class="ct">Конверсии</div><div class="cvgrid">
+        ${CV("Лид → Квал",     sQP+"%")}
+        ${CV("Квал → Продажа", d.convQualSale+"%")}
+        ${CV("Лид → Продажа",  d.convLeadSale+"%")}
+        ${CV("CAC",            ft(cac))}
+      </div></div>
+    </div>
+    <div class="g2 a3">
+      <div class="card">
+        <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
+        ${P("Продажи", d.totalSSales,   d.planSSales,   "#22c55e")}
+        ${P("Выручка", d.totalSRevenue, d.planSRevenue, "#22c55e")}
+      </div>
+      <div class="g3" style="margin:0;align-content:start">
+        ${K("CAC",    ft(cac), '<span class="neu">Расход / клиент</span>',ac)}
+        ${K("Ср. чек",ft(avg), '<span class="neu">₸ за продажу</span>',"#eab308")}
+        ${K("ROMI",  (d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
+      </div>
+    </div>` : `
+    <div class="g2 a2">
+      <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
+        ${F(1,"Лиды",           d.totalSLeads,   null)}
+        ${F(2,"Квал лиды",      d.totalSQual,    sQP+"%")}
+        ${F(3,"Назнач. встречи",d.totalSMeetSet, d.convQualMeet+"%")}
+        ${F(4,"Прошли встречи", d.totalSMeetDone,mP+"%")}
+        ${F(5,"Продаж закрыто", d.totalSSales,   d.convQualSale+"%")}
+      </div></div>
+      <div class="card"><div class="ct">Конверсии</div><div class="cvgrid">
+        ${CV("Лид → Квал",     sQP+"%")}
+        ${CV("Квал → Встреча", d.convQualMeet+"%")}
+        ${CV("Квал → Продажа", d.convQualSale+"%")}
+        ${CV("Лид → Продажа",  d.convLeadSale+"%")}
+      </div></div>
+    </div>
+    <div class="g2 a3">
+      <div class="card">
+        <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
+        ${P("Продажи",d.totalSSales,   d.planSSales,   "#22c55e")}
+        ${P("Выручка",d.totalSRevenue, d.planSRevenue, "#22c55e")}
+      </div>
+      <div class="g3" style="margin:0;align-content:start">
+        ${K("ROMI",(d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
+        ${K("CAC",ft(cac),'<span class="neu">Расход / клиент</span>',ac)}
+        ${K("Ср. чек",ft(avg),'<span class="neu">₸ за продажу</span>',"#eab308")}
+      </div>
+    </div>`;
+
   document.getElementById("dash").innerHTML = `
 
     <div class="live-block a0">
@@ -551,41 +626,8 @@ function renderMS(d, ac) {
     <div class="card mb a4"><div class="ct">Аномалии</div><div class="alist" id="al"></div></div>
 
     ${S("Отдел продаж", sp)}
-    <div class="g6 a1">
-      ${K("Лиды",        f(d.totalSLeads),   "", ac,"sm")}
-      ${K("Квал лиды",   f(d.totalSQual),    `<span class="neu">${sQP}% квалиф.</span>`,"#2dd4bf","sm")}
-      ${K("Встречи назн",f(d.totalSMeetSet), `<span class="neu">${d.convQualMeet}% с квал</span>`,"#eab308","sm")}
-      ${K("Встречи пров",f(d.totalSMeetDone),`<span class="neu">${mP}% прошло</span>`,"#eab308","sm")}
-      ${K("Продаж",      f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
-      ${K("Оплаты",      ft(d.totalSRevenue),"","#22c55e","xs")}
-    </div>
-    <div class="g2 a2">
-      <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
-        ${F(1,"Лиды",           d.totalSLeads,   null)}
-        ${F(2,"Квал лиды",      d.totalSQual,    sQP+"%")}
-        ${F(3,"Назнач. встречи",d.totalSMeetSet, d.convQualMeet+"%")}
-        ${F(4,"Прошли встречи", d.totalSMeetDone,mP+"%")}
-        ${F(5,"Продаж закрыто", d.totalSSales,   d.convQualSale+"%")}
-      </div></div>
-      <div class="card"><div class="ct">Конверсии</div><div class="cvgrid">
-        ${CV("Лид → Квал",     sQP+"%")}
-        ${CV("Квал → Встреча", d.convQualMeet+"%")}
-        ${CV("Квал → Продажа", d.convQualSale+"%")}
-        ${CV("Лид → Продажа",  d.convLeadSale+"%")}
-      </div></div>
-    </div>
-    <div class="g2 a3">
-      <div class="card">
-        <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
-        ${P("Продажи",d.totalSSales,   d.planSSales,   "#22c55e")}
-        ${P("Выручка",d.totalSRevenue, d.planSRevenue, "#22c55e")}
-      </div>
-      <div class="g3" style="margin:0;align-content:start">
-        ${K("ROMI",(d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
-        ${K("CAC",ft(cac),'<span class="neu">Расход / клиент</span>',ac)}
-        ${K("Ср. чек",ft(avg),'<span class="neu">₸ за продажу</span>',"#eab308")}
-      </div>
-    </div>
+    ${salesKPIs}
+    ${salesFunnel}
   `;
 
   // Аномалии

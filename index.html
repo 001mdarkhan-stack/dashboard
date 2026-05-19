@@ -515,7 +515,7 @@ function renderMS(d, ac) {
       ${K("Встречи назн",f(d.totalSMeetSet), `<span class="neu">${d.convQualMeet}% с квал</span>`,"#eab308","sm")}
       ${K("Встречи пров",f(d.totalSMeetDone),`<span class="neu">${mP}% прошло</span>`,"#eab308","sm")}
       ${K("Продаж",      f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
-      ${K("Оплаты",      ft(d.totalSRevenue),"","#22c55e","xs")}
+      ${(d.totalSDeposit||0)>0 ? K("Задаток",ft(d.totalSDeposit),"","#22c55e","xs") : K("Оплаты",ft(d.totalSRevenue),"","#22c55e","xs")}
     </div>`;
 
   const salesFunnel = isCubes ? `
@@ -564,7 +564,7 @@ function renderMS(d, ac) {
       <div class="card">
         <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
         ${P("Продажи",d.totalSSales,   d.planSSales,   "#22c55e")}
-        ${P("Выручка",d.totalSRevenue, d.planSRevenue, "#22c55e")}
+        ${(d.totalSDeposit||0)>0 ? P("Задаток",d.totalSDeposit, d.planSRevenue, "#22c55e") : P("Выручка",d.totalSRevenue, d.planSRevenue, "#22c55e")}
       </div>
       <div class="g3" style="margin:0;align-content:start">
         ${K("ROMI",(d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}

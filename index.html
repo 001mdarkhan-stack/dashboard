@@ -497,6 +497,8 @@ function renderMS(d, ac) {
   const mP  = d.totalSMeetSet>0 ? (d.totalSMeetDone/d.totalSMeetSet*100).toFixed(0) : 0;
   const cac = d.totalSSales>0 ? Math.round(d.totalMSpend/d.totalSSales) : 0;
   const avg = d.totalSSales>0 ? Math.round(d.totalSRevenue/d.totalSSales) : 0;
+  const cubeCost = d.totalSCubes>0 ? Math.round(d.totalMSpend/d.totalSCubes) : 0; // расход / куб
+  const cubeAvg  = d.totalSSales>0 ? +(d.totalSCubes/d.totalSSales).toFixed(1) : 0; // кубов / продажу
 
   // Определяем тип воронки: с кубами (ALSAPA) или стандартная (со встречами)
   const isCubes = d.totalSMeetSet === 0 && d.totalSMeetDone === 0;
@@ -543,6 +545,8 @@ function renderMS(d, ac) {
         ${K("CAC",    ft(cac), '<span class="neu">Расход / клиент</span>',ac)}
         ${K("Ср. чек",ft(avg), '<span class="neu">₸ за продажу</span>',"#eab308")}
         ${K("ROMI",  (d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
+        ${K("Стоимость куба", ft(cubeCost), '<span class="neu">расход / м³</span>',"#a855f7")}
+        ${K("Ср. чек куба",   cubeAvg+" м³", '<span class="neu">кубов / продажу</span>',"#eab308")}
       </div>
     </div>` : `
     <div class="g2 a2">

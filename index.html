@@ -207,6 +207,32 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @media(max-width:480px){.live-grid{grid-template-columns:1fr 1fr}}
 .yest-label{font-size:10px;text-transform:uppercase;letter-spacing:3px;color:var(--muted);
   margin-bottom:12px}
+
+/* ══ TABS (План-факт / Сквозная) ════════════════════════════ */
+.tabs{display:flex;gap:6px;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:5px;width:fit-content}
+.tab{border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;
+  font-weight:600;font-size:13px;padding:9px 18px;border-radius:10px;cursor:pointer;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.on{background:var(--accent);color:#fff}
+
+/* ══ СКВОЗНАЯ ═══════════════════════════════════════════════ */
+.sqkv{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-top:1px solid var(--border)}
+.sqkv:first-child{border-top:0}
+.sqkv span{color:var(--muted)}
+.sqkv b{font-family:'DM Mono',monospace}
+.sqtwrap{overflow-x:auto}
+.sqt{width:100%;border-collapse:collapse;font-size:13px;font-family:'DM Mono',monospace}
+.sqt th{font-family:'DM Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);font-weight:600;padding:14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
+.sqt th:first-child{text-align:left}
+.sqt td{padding:12px 14px;text-align:right;white-space:nowrap;border-top:1px solid var(--border)}
+.sqt td:first-child{text-align:left;white-space:normal;min-width:180px}
+.sqt tbody tr:hover{background:rgba(255,255,255,0.02)}
+.sqname{font-family:'DM Sans',sans-serif;font-weight:500;color:var(--text)}
+.sqnote{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.6;background:var(--bg2);
+  border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:14px 16px}
+.sq-ldg{display:flex;align-items:center;justify-content:center;height:280px;color:var(--muted);font-size:12px;letter-spacing:2px}
 </style>
 </head>
 <body>
@@ -272,12 +298,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <span style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:bnc 1.4s ease infinite;display:inline-block;flex-shrink:0"></span>
         LIVE · <span id="cdown">15:00</span>
       </div>
-      <div class="icon-btn" onclick="loadData()" title="Обновить">↻</div>
+      <div class="icon-btn" onclick="refreshActive()" title="Обновить">↻</div>
       <div class="icon-btn" onclick="openSP()" title="Настройки плана">⚙</div>
       <div class="brand-tag">Smart</div>
     </div>
   </div>
+  <div class="tabs a0" id="tabs" style="display:none">
+    <button class="tab on" id="tab-rnp" onclick="switchTab('rnp')">План-факт</button>
+    <button class="tab" id="tab-sq" onclick="switchTab('sq')">Сквозная</button>
+  </div>
   <div id="dash"></div>
+  <div id="sq" style="display:none"></div>
 </div>
 
 <script>
@@ -296,6 +327,20 @@ const CLIENTS = {
   // "новый2026": { name:"КЛИЕНТ", hl:"", sub:"Ниша · 2026", accent:"#цвет" },
 };
 
+// ── СКВОЗНАЯ: отдельный Web App + маппинг пароль → клиент ──
+const SQ_API = "https://script.google.com/macros/s/AKfycbymEGNbETo1Z5pXiGghkmpr17J_xTFeaIHWD4Brf5nMEuQulqTl3uUK9qnDDJiOa8WyaQ/exec";
+const SQ_CLIENTS = { "tetris2026":"tetris", "alsapa2026":"alsapa" };  // у кого есть сквозная (ключ = пароль)
+const MKEY_NUM = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+function sqPeriod(monthKey){
+  const m = MKEY_NUM[monthKey] || 5, y = 2026, mm = String(m).padStart(2,"0");
+  const since = `${y}-${mm}-01`;
+  const last  = new Date(y, m, 0).getDate();
+  let until   = `${y}-${mm}-${String(last).padStart(2,"0")}`;
+  const today = new Date().toISOString().slice(0,10);
+  if (until > today && since <= today) until = today;   // текущий месяц — до сегодня
+  return `${since}..${until}`;
+}
+
 // Русские названия для ключей месяцев
 const MONTH_LABELS = {
   jan:"Январь", feb:"Февраль", mar:"Март",     apr:"Апрель",
@@ -311,6 +356,8 @@ let G = {
   meta:     null,   // {months, curMonth, type, salesPerson}
   curMonth: "",
   data:     null,
+  tab:      "rnp",       // активная вкладка: rnp | sq
+  sqMonth:  null,        // для какого месяца уже загружена сквозная
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -334,6 +381,17 @@ function login() {
     cfg.name + (cfg.hl ? ` <em>${cfg.hl}</em>` : "");
   document.getElementById("csub").textContent = cfg.sub;
 
+  // Вкладка «Сквозная» — только для клиентов, у кого она настроена
+  G.tab = "rnp"; G.sqMonth = null;
+  if (SQ_CLIENTS[pwd]) {
+    document.getElementById("tabs").style.display = "flex";
+    switchTab("rnp");
+  } else {
+    document.getElementById("tabs").style.display = "none";
+    document.getElementById("dash").style.display = "block";
+    document.getElementById("sq").style.display   = "none";
+  }
+
   initClient();
   startAutoRefresh();
 }
@@ -354,7 +412,7 @@ function startAutoRefresh() {
     _countdown--;
     if (_countdown <= 0) {
       _countdown = REFRESH_SEC;
-      loadData();
+      refreshActive();
     }
     const m = String(Math.floor(_countdown/60)).padStart(2,"0");
     const s = String(_countdown%60).padStart(2,"0");
@@ -407,7 +465,108 @@ function buildMonthNav(months) {
 function switchMonth(key) {
   if (!key || key === G.curMonth) return;
   G.curMonth = key;
+  G.sqMonth = null;                       // сквозная за прошлый месяц устарела
   loadData();
+  if (G.tab === "sq") loadSq();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ВКЛАДКИ: План-факт / Сквозная
+// ══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  G.tab = tab;
+  const isSq = tab === "sq";
+  document.getElementById("dash").style.display = isSq ? "none" : "block";
+  document.getElementById("sq").style.display   = isSq ? "block" : "none";
+  document.getElementById("tab-rnp").classList.toggle("on", !isSq);
+  document.getElementById("tab-sq").classList.toggle("on", isSq);
+  if (isSq && G.sqMonth !== G.curMonth) loadSq();
+}
+
+// ↻ и автрефреш обновляют активную вкладку
+function refreshActive() {
+  loadData();
+  if (G.tab === "sq") loadSq();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  СКВОЗНАЯ — загрузка и рендер
+// ══════════════════════════════════════════════════════════════
+async function loadSq() {
+  const box = document.getElementById("sq");
+  box.innerHTML = `<div class="sq-ldg">Загрузка сквозной…</div>`;
+  const client = SQ_CLIENTS[G.pwd];
+  const url = `${SQ_API}?view=skvoznaya&client=${client}&key=${encodeURIComponent(G.pwd)}&period=${sqPeriod(G.curMonth)}`;
+  try {
+    const d = await (await fetch(url)).json();
+    if (d.error) { box.innerHTML = `<div class="sq-ldg" style="color:var(--red)">Не удалось получить данные: ${d.error}</div>`; return; }
+    G.sqMonth = G.curMonth;
+    renderSq(d);
+  } catch(e) {
+    box.innerHTML = `<div class="sq-ldg" style="color:var(--red)">Нет связи со сквозной. Проверь, что развёрнута новая версия скрипта.</div>`;
+  }
+}
+
+function renderSq(d) {
+  const f  = n => (n==null) ? "—" : Number(n).toLocaleString("ru-RU");
+  const ft = n => (n==null) ? "—" : Math.round(n).toLocaleString("ru-RU")+" ₸";
+  const rs = n => (n==null) ? "—" : "×"+Number(n).toFixed(2);
+  const ac = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  const isForm = d.channel === "form";
+
+  const agg = (d.sources||[]).reduce((a,s)=>{ a.leads+=s.leads||0; a.sales+=s.sales||0; a.revenue+=s.revenue||0; return a; }, {leads:0,sales:0,revenue:0});
+  const spend = (d.totals && d.totals.spend) || 0;
+  const roasv = spend>0 ? agg.revenue/spend : null;
+
+  // KPI-воронка
+  let kp = K("Расход", ft(spend), "", "#a855f7", "sm");
+  if (!isForm) kp += K("Переписки", f(d.totals.conversations),
+    d.totals.cost_per_conv ? `<span class="neu">${ft(d.totals.cost_per_conv)} / переписку</span>` : "", "#eab308", "sm");
+  kp += K("Лиды", f(agg.leads), "", ac, "sm");
+  kp += K("Продажи", f(agg.sales), "", "#22c55e", "sm");
+  kp += K("Выручка", ft(agg.revenue), "", "#22c55e", "sm");
+  kp += K("ROAS", rs(roasv), roasv!=null ? `<span class="${roasv>=1?'up':'dn'}">${roasv>=1?'окупается':'в минусе'}</span>` : "", "#2dd4bf", "sm");
+
+  // карточки источников
+  const srcCards = (d.sources||[]).map(s=>{
+    let rows = `<div class="sqkv"><span>Расход</span><b>${ft(s.spend)}</b></div>`;
+    if (s.key==='wa') rows += `<div class="sqkv"><span>Переписки</span><b>${f(s.conversations)}</b></div>`;
+    rows += `<div class="sqkv"><span>Лиды</span><b>${f(s.leads)}</b></div>`;
+    rows += `<div class="sqkv"><span>Продажи</span><b>${f(s.sales)}</b></div>`;
+    rows += `<div class="sqkv"><span>Выручка</span><b>${ft(s.revenue)}</b></div>`;
+    return `<div class="card"><div class="ct">${s.label}</div>${rows}</div>`;
+  }).join("");
+
+  // таблица крео
+  let cols, body;
+  if (isForm) {
+    cols = ["Крео","Расход","Лиды","CPL","Продажи","Выручка","CAC","ROAS"];
+    body = (d.creatives||[]).map(c=>`<tr>
+      <td class="sqname">${c.ad_name}</td><td>${ft(c.spend)}</td><td>${f(c.leads)}</td><td>${ft(c.cpl)}</td>
+      <td>${f(c.sales)}</td><td>${ft(c.revenue)}</td><td>${ft(c.cac)}</td>
+      <td class="${c.roas!=null?(c.roas>=1?'up':'dn'):''}">${rs(c.roas)}</td></tr>`).join("");
+  } else {
+    cols = ["Крео","Источник","Расход","Показы","Клики","Переписки","Цена/переп."];
+    body = (d.creatives||[]).map(c=>`<tr>
+      <td class="sqname">${c.ad_name}</td><td class="neu">${c.source}</td><td>${ft(c.spend)}</td>
+      <td class="neu">${f(c.impressions)}</td><td class="neu">${f(c.clicks)}</td>
+      <td>${f(c.conversations)}</td><td>${ft(c.cost_per_conv)}</td></tr>`).join("");
+  }
+  if (!body) body = `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--dim);padding:28px">Нет крео за период${isForm?' — если расход есть, а тут пусто, резолв имени крео ещё не отдаёт данные':''}</td></tr>`;
+
+  document.getElementById("sq").innerHTML = `
+    ${S("Сквозная аналитика", isForm ? "ФАКТ по крео" : "Модель · WhatsApp")}
+    <div class="g6 a1">${kp}</div>
+    ${S("Источники","")}
+    <div class="g2 a2">${srcCards}</div>
+    ${S("Креативы","")}
+    <div class="card a3" style="padding:0;overflow:hidden">
+      <div class="sqtwrap"><table class="sqt">
+        <thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead>
+        <tbody>${body}</tbody></table></div>
+    </div>
+    ${d.note ? `<div class="sqnote a3">${d.note}</div>` : ""}
+  `;
 }
 
 // ══════════════════════════════════════════════════════════════

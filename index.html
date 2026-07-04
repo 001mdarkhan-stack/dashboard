@@ -425,7 +425,7 @@ function startAutoRefresh() {
 // ══════════════════════════════════════════════════════════════
 async function initClient() {
   try {
-    const res  = await fetch(`${API_URL}?pwd=${G.pwd}&meta=1`);
+    const res  = await fetch(`${API_URL}?pwd=${G.pwd}&meta=1&t=${Date.now()}`);
     const meta = await res.json();
     if (meta.error) throw new Error(meta.error);
     G.meta = meta;
@@ -439,11 +439,24 @@ async function initClient() {
     buildMonthNav(meta.months);
     loadData();
   } catch(e) {
-    // Если API ещё не задеплоен — грузим с текущим месяцем
-    G.meta = { months:{ apr:"Апрель", may:"Май" }, curMonth:"may", type:"marketing_sales" };
-    G.curMonth = "may";
-    buildMonthNav(G.meta.months);
-    loadData();
+    // Одна повторная попытка (на случай холодного старта бэкенда)
+    try {
+      const res2  = await fetch(`${API_URL}?pwd=${G.pwd}&meta=1&t=${Date.now()}`);
+      const meta2 = await res2.json();
+      if (meta2.error) throw new Error(meta2.error);
+      G.meta = meta2;
+      G.curMonth = meta2.curMonth || Object.keys(meta2.months)[0];
+      if (meta2.type === "marketing_sales") {
+        document.getElementById("sp-ssect").style.display = "";
+        document.getElementById("sp-sfields").style.display = "";
+      }
+      buildMonthNav(meta2.months);
+      loadData();
+    } catch(e2) {
+      document.getElementById("dash").innerHTML =
+        `<div class="ldg" style="color:var(--red)">Не удалось загрузить месяцы: ${e2.message}<br>
+        <small style="color:var(--muted);margin-top:8px;display:block">Обнови страницу</small></div>`;
+    }
   }
 }
 
@@ -454,8 +467,9 @@ function buildMonthNav(months) {
   const sel = document.getElementById("month-select");
   sel.innerHTML = Object.entries(months).map(([key, sheet]) => {
     const lbl = MONTH_LABELS[key] || sheet;
-    return `<option value="${key}" ${key===G.curMonth?'selected':''}>${lbl}</option>`;
+    return `<option value="${key}">${lbl}</option>`;
   }).join("");
+  if (G.curMonth) sel.value = G.curMonth;   // всегда открываем на текущем месяце
 }
 
 function switchMonth(key) {

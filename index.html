@@ -320,7 +320,9 @@ const CLIENTS = {
   "tetris2026"  : { name:"TETRIS",  hl:"",  sub:"Реклама · 2026",      accent:"#f97316" },
   "alsapa2026"  : { name:"ALSAPA",  hl:"",  sub:"Газоблоки · 2026",    accent:"#10b981" },
   "kepler2026"  : { name:"KEPLER",  hl:"",  sub:"Скрытые двери · 2026",accent:"#8b5cf6" },
+  "belen2026"   : { name:"BELEN",   hl:"",  sub:"Innovation Beauty · 2026", accent:"#e11d48", funnel:"simple" },
   // "новый2026": { name:"КЛИЕНТ", hl:"", sub:"Ниша · 2026", accent:"#цвет" },
+  // funnel:"simple" — если у клиента нет ни кубов, ни встреч
 };
 
 // ── СКВОЗНАЯ: отдельный Web App + маппинг пароль → клиент ──
@@ -672,8 +674,17 @@ function renderMS(d, ac) {
   // Определяем тип воронки: с кубами (ALSAPA) или стандартная (со встречами)
   const isCubes = d.totalSMeetSet === 0 && d.totalSMeetDone === 0;
 
+  // funnel:"simple" в CLIENTS — без кубов и без встреч (BELEN)
+  const isSimple = ((CLIENTS[G.pwd] || {}).funnel === "simple");
+
   // Блок продаж — адаптивный
-  const salesKPIs = isCubes ? `
+  const salesKPIs = isSimple ? `
+    <div class="g4 a1">
+      ${K("Квал лиды",   f(d.totalSQual),  `<span class="neu">${sQP}% от лидов</span>`,"#2dd4bf","sm")}
+      ${K("Продаж",      f(d.totalSSales), `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
+      ${K("Сумма оплат", ft(d.totalSRevenue),""                                ,"#22c55e","xs")}
+      ${K("Ср. чек",     ft(avg),          `<span class="neu">₸ за продажу</span>`,"#eab308","xs")}
+    </div>` : isCubes ? `
     <div class="g4 a1">
       ${K("Квал лиды",      f(d.totalSQual),    `<span class="neu">${sQP}% от лидов</span>`,"#2dd4bf","sm")}
       ${K("Продаж",         f(d.totalSSales),   `<span class="neu">${d.convQualSale}% с квал</span>`,"#22c55e","sm")}
@@ -689,7 +700,32 @@ function renderMS(d, ac) {
       ${(d.totalSDeposit||0)>0 ? K("Задаток",ft(d.totalSDeposit),"","#22c55e","xs") : K("Оплаты",ft(d.totalSRevenue),"","#22c55e","xs")}
     </div>`;
 
-  const salesFunnel = isCubes ? `
+  const salesFunnel = isSimple ? `
+    <div class="g2 a2">
+      <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
+        ${F(1,"Лиды",           d.totalSLeads, null)}
+        ${F(2,"Квал лиды",      d.totalSQual,  sQP+"%")}
+        ${F(3,"Продаж закрыто", d.totalSSales, d.convQualSale+"%")}
+      </div></div>
+      <div class="card"><div class="ct">Конверсии</div><div class="cvgrid">
+        ${CV("Лид → Квал",     sQP+"%")}
+        ${CV("Квал → Продажа", d.convQualSale+"%")}
+        ${CV("Лид → Продажа",  d.convLeadSale+"%")}
+        ${CV("CAC",            ft(cac))}
+      </div></div>
+    </div>
+    <div class="g2 a3">
+      <div class="card">
+        <div class="ct">План продаж &nbsp;<span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openSP()">⚙</span></div>
+        ${P("Продажи", d.totalSSales,   d.planSSales,   "#22c55e")}
+        ${P("Выручка", d.totalSRevenue, d.planSRevenue, "#22c55e")}
+      </div>
+      <div class="g3" style="margin:0;align-content:start">
+        ${K("ROMI",   (d.romi||0)+"%",'<span class="neu">Возврат на маркетинг</span>',"#22c55e")}
+        ${K("CAC",    ft(cac),'<span class="neu">Расход / клиент</span>',ac)}
+        ${K("Ср. чек",ft(avg),'<span class="neu">₸ за продажу</span>',"#eab308")}
+      </div>
+    </div>` : isCubes ? `
     <div class="g2 a2">
       <div class="card"><div class="ct">Воронка продаж</div><div class="fnl">
         ${F(1,"Лиды",          d.totalSLeads, null)}

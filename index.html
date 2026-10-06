@@ -327,8 +327,9 @@ const CLIENTS = {
 };
 
 // ── СКВОЗНАЯ: отдельный Web App + маппинг пароль → клиент ──
+const SQ_API_GLOBAL = "https://script.google.com/macros/s/AKfycbz4B7OpS4PAjFV2h-hXnUjAMrEjySxOuyMn2B0iCa1f7V0ZZEbBd-ivYwAYWqH9BEXZ/exec";
 const SQ_API = "https://script.google.com/macros/s/AKfycbymEGNbETo1Z5pXiGghkmpr17J_xTFeaIHWD4Brf5nMEuQulqTl3uUK9qnDDJiOa8WyaQ/exec";
-const SQ_CLIENTS = { "tetris2026":"tetris", "alsapa2026":"alsapa" };  // у кого есть сквозная (ключ = пароль)
+const SQ_CLIENTS = { "tetris2026":"tetris", "alsapa2026":"alsapa", "global2026":"global" };  // у кого есть сквозная (ключ = пароль)
 const MKEY_NUM = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
 function sqPeriod(monthKey){
   const m = MKEY_NUM[monthKey] || 5, y = 2026, mm = String(m).padStart(2,"0");
@@ -509,7 +510,8 @@ async function loadSq() {
   const box = document.getElementById("sq");
   box.innerHTML = `<div class="sq-ldg">Загрузка сквозной…</div>`;
   const client = SQ_CLIENTS[G.pwd];
-  const url = `${SQ_API}?view=skvoznaya&client=${client}&key=${encodeURIComponent(G.pwd)}&period=${sqPeriod(G.curMonth)}`;
+  const api = (client==="global") ? SQ_API_GLOBAL : SQ_API;
+  const url = `${api}?view=skvoznaya&client=${client}&key=${encodeURIComponent(G.pwd)}&period=${sqPeriod(G.curMonth)}`;
   try {
     const d = await (await fetch(url)).json();
     if (d.error) { box.innerHTML = `<div class="sq-ldg" style="color:var(--red)">Не удалось получить данные: ${d.error}</div>`; return; }
